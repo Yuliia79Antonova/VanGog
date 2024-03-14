@@ -77,6 +77,10 @@ void Game::processEvents()
 		{
 			processKeys(newEvent);
 		}
+		if (sf::Event::MouseButtonPressed == newEvent.type)
+		{
+			processMouse(newEvent);
+		}
 	}
 }
 
@@ -93,6 +97,34 @@ void Game::processKeys(sf::Event t_event)
 	}
 }
 
+void Game::processMouse(sf::Event t_event)
+{
+	float lenght = 0.0f;
+	sf::Vector2f displacement(0.0f, 0.0f);
+	if (sf::Mouse::Middle == t_event.mouseButton.button)
+	{
+		displacement.x = static_cast<float>(t_event.mouseButton.x) - m_starslocation.x;
+		displacement.y = static_cast<float>(t_event.mouseButton.y) - m_starslocation.y;
+		m_target.x = t_event.mouseButton.x;
+		m_target.y = t_event.mouseButton.y;
+		lenght = std::sqrt((displacement.x * displacement.x) + (displacement.y * displacement.y));
+		displacement = displacement / lenght;
+		displacement = displacement * m_speed;
+		m_velocity = displacement;
+	}
+	if (static_cast<float>(t_event.mouseButton.x) > m_starslocation.x)
+		{
+			m_facing = Direction::Right;
+			m_stars.setScale(1.0, 1.0);
+		}
+	else
+		{
+			m_facing = Direction::Left;
+			m_stars.setScale(-1.0, 1.0);
+		}
+}
+
+
 /// <summary>
 /// Update the game world
 /// </summary>
@@ -103,6 +135,9 @@ void Game::update(sf::Time t_deltaTime)
 	{
 		m_window.close();
 	}
+	starsMove();
+	animateStars();
+	
 }
 
 /// <summary>
@@ -113,8 +148,9 @@ void Game::render()
 	m_window.clear(sf::Color::White);
 	m_window.draw(m_skySprite);
 	//m_window.draw(m_welcomeMessage);
-	//m_window.draw(m_logoSprite);
+	m_window.draw(m_stars);
 	m_window.display();
+	
 }
 
 /// <summary>
@@ -142,13 +178,15 @@ void Game::setupFontAndText()
 /// </summary>
 void Game::setupSprite()
 {
-	//if (!m_logoTexture.loadFromFile("ASSETS\\IMAGES\\SFML-LOGO.png"))
-	//{
+	if (!m_starsTexture.loadFromFile("ASSETS\\IMAGES\\stars.png"))
+	{
 		// simple error message if previous call fails
-		//std::cout << "problem loading logo" << std::endl;
-	//}
-	//m_logoSprite.setTexture(m_logoTexture);
-	//m_logoSprite.setPosition(300.0f, 180.0f);
+		std::cout << "problem loading stars" << std::endl;
+	}
+	m_stars.setTexture(m_starsTexture);
+	m_stars.setTextureRect(sf::IntRect(0, 0, 200,64));
+	m_stars.setPosition(m_starslocation);
+	m_stars.setOrigin(90.0f, 32.0f);
 	setupSky();
 }
 
@@ -161,4 +199,36 @@ void Game::setupSky()
 	m_skyTexture.setRepeated(true);
 	m_skySprite.setTexture(m_skyTexture);
 	m_skySprite.setTextureRect(sf::IntRect{ 0,0,WIDTH,HEIGHT });
+}
+
+void Game::animateStars()
+{
+	int newFrameNumber = 0;
+	m_currentFrameCounter += m_frameIncrement;
+	newFrameNumber = static_cast<int>(m_currentFrameCounter);
+	newFrameNumber = newFrameNumber % 4; 
+	if (newFrameNumber != m_currentFrame)
+	{
+		m_currentFrame = newFrameNumber;
+		m_stars.setTextureRect(sf::IntRect(0, 64, 180, 180));
+	}
+}
+
+void Game::starsMove()
+{
+	if (m_facing != Direction::None)
+	{
+		m_starslocation += m_velocity;
+		m_stars.setPosition(m_starslocation);
+
+
+		if (m_facing == Direction::Right && m_starslocation.x > m_target.x)
+		{
+			m_facing = Direction::None;
+		}
+		if (m_facing == Direction::Left && m_starslocation.x < m_target.x)
+		{
+			m_facing = Direction::None;
+		}
+	}
 }
